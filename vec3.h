@@ -8,17 +8,9 @@
 class vec3
 {
 public:
-    vec3() : x(0), y(0), z(0)
-    {
-        this->UpdateIsNormalizedVariable();
-        this->UpdateIsZeroVariable();
-    }
+    vec3() : x(0), y(0), z(0){}
 
-    vec3(double x, double y, double z) : x(x), y(y), z(z)
-    {
-        this->UpdateIsNormalizedVariable();
-        this->UpdateIsZeroVariable();
-    }
+    vec3(double x, double y, double z) : x(x), y(y), z(z){}
 
     vec3(std::initializer_list<double> const il)
     {
@@ -33,8 +25,6 @@ public:
             i++;
         }
 
-        this->UpdateIsNormalizedVariable();
-        this->UpdateIsZeroVariable();
     }
 
     ~vec3()
@@ -47,8 +37,6 @@ public:
         this->y = rhs.y;
         this->z = rhs.z;
 
-        this->UpdateIsNormalizedVariable();
-        this->UpdateIsZeroVariable();
     }
 
     vec3 operator+(vec3 const& rhs) { return {x + rhs.x, y + rhs.y, z + rhs.z};}
@@ -58,24 +46,6 @@ public:
 
     double x, y, z;
 
-    bool IsNormalized()
-    {
-        return this->isNormalized;
-    }
-
-    bool IsZero()
-    {
-        return this->isZero;
-    }
-
-private:
-    // Calculate if the vector is normalized
-    void UpdateIsNormalizedVariable();
-    // Calculate if the vector is zero
-    void UpdateIsZeroVariable();
-
-    volatile bool isNormalized;
-    volatile bool isZero;
 };
 
 // Get length of 3D vector
@@ -97,28 +67,6 @@ inline vec3 normalize(vec3 v)
 
     vec3 ret = vec3(v.x / l, v.y / l, v.z / l);
     return vec3(ret);
-}
-
-inline void vec3::UpdateIsNormalizedVariable()
-{
-    if (len(*this) == 1.0)
-    {
-        this->isNormalized = true;
-        return;
-    }
-    
-    this->isNormalized = false;
-}
-
-inline void vec3::UpdateIsZeroVariable()
-{
-    if (len(*this) == 0.0)
-    {
-        this->isZero = true;
-        return;
-    }
-    
-    this->isZero = false;
 }
 
 // piecewise multiplication between two vectors

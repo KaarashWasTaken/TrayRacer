@@ -3,18 +3,20 @@
 #include "vec3.h"
 #include "raytracer.h"
 #include "sphere.h"
+//#include "flags.h"
 
 #define degtorad(angle) angle * MPI / 180
 
 int main()
 { 
+    //flags::args args = flags::args(int argc, char argv);
     Display::Window wnd;
     
     wnd.SetTitle("TrayRacer");
     
     if (!wnd.Open())
         return 1;
-
+    
     std::vector<Color> framebuffer;
 
     const unsigned w = 200;

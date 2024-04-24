@@ -37,9 +37,9 @@ Raytracer::Raytrace()
                 vec3 direction = vec3(u, v, -1.0f);
                 direction = transform(direction, this->frustum);
                 
-                Ray* ray = new Ray(get_position(this->view), direction);
-                color += this->TracePath(*ray, 0);
-                delete ray;
+                Ray ray = Ray(get_position(this->view), direction);
+                color += this->TracePath(ray, 0);
+                // delete ray;
             }
 
             // divide by number of samples per pixel, to get the average of the distribution
@@ -66,12 +66,11 @@ Raytracer::TracePath(Ray ray, unsigned n)
 
     if (Raycast(ray, hitPoint, hitNormal, hitObject, distance, this->objects))
     {
-        Ray* scatteredRay = new Ray(hitObject->ScatterRay(ray, hitPoint, hitNormal));
+        Ray scatteredRay = Ray(hitObject->ScatterRay(ray, hitPoint, hitNormal));
         if (n < this->bounces)
         {
-            return hitObject->GetColor() * this->TracePath(*scatteredRay, n + 1);
+            return hitObject->GetColor() * this->TracePath(scatteredRay, n + 1);
         }
-        delete scatteredRay;
 
         if (n == this->bounces)
         {
@@ -93,31 +92,31 @@ Raytracer::Raycast(Ray ray, vec3& hitPoint, vec3& hitNormal, Object*& hitObject,
     int numHits = 0;
     HitResult hit;
 
-    // First, sort the world objects
-    std::sort(world.begin(), world.end());
+    //// First, sort the world objects
+    //std::sort(world.begin(), world.end());
 
-    // then add all objects into a remaining objects set of unique objects, so that we don't trace against the same object twice
-    std::vector<Object*> uniqueObjects;
-    for (size_t i = 0; i < world.size(); ++i)
+    //// then add all objects into a remaining objects set of unique objects, so that we don't trace against the same object twice
+    //std::vector<Object*> uniqueObjects;
+    //for (size_t i = 0; i < world.size(); ++i)
+    //{
+    //    Object* obj = world[i];
+    //    std::vector<Object*>::iterator it = std::find_if(uniqueObjects.begin(), uniqueObjects.end(), 
+    //            [obj](const auto& val)
+    //            {
+    //                return (obj->GetName() == val->GetName() && obj->GetId() == val->GetId());
+    //            }
+    //        );
+
+    //    if (it == uniqueObjects.end())
+    //    {
+    //        uniqueObjects.push_back(obj);
+    //    }
+    //}
+
+    for (auto object : world)
     {
-        Object* obj = world[i];
-        std::vector<Object*>::iterator it = std::find_if(uniqueObjects.begin(), uniqueObjects.end(), 
-                [obj](const auto& val)
-                {
-                    return (obj->GetName() == val->GetName() && obj->GetId() == val->GetId());
-                }
-            );
-
-        if (it == uniqueObjects.end())
-        {
-            uniqueObjects.push_back(obj);
-        }
-    }
-
-    while (uniqueObjects.size() > 0)
-    {
-        auto objectIt = uniqueObjects.begin();
-        Object* object = *objectIt;
+        /*auto objectIt = uniqueObjects.begin();
+        Object* object = *objectIt;*/
 
         auto opt = object->Intersect(ray, closestHit.t);
         if (opt.HasValue())
@@ -129,7 +128,7 @@ Raytracer::Raycast(Ray ray, vec3& hitPoint, vec3& hitNormal, Object*& hitObject,
             isHit = true;
             numHits++;
         }
-        uniqueObjects.erase(objectIt);
+       // uniqueObjects.erase(objectIt);
     }
 
     hitPoint = closestHit.p;

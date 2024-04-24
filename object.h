@@ -37,29 +37,12 @@ public:
         // check if this object has a value.
         if (this->hasValue)
         {
-            // doublecheck the value
-            if (value == nullptr)
-            {
-                return false;
-            }
-            if (value != nullptr)
-            {
-                // doublecheck the value content.
-                if (value->object == nullptr)
-                {
-                    return false;
-                }
-                if (value->normal.IsZero())
-                {
-                    return false;
-                }
-            }
+            return true;
         }
         else
         {
             return false;
         }
-        return true;
     }
     HitResult Get()
     {
