@@ -1,7 +1,9 @@
 #pragma once
 #include <vector>
 #include <atomic>
+#include <thread>
 #include "vec3.h"
+#include "material.h"
 #include "mat4.h"
 #include "color.h"
 #include "ray.h"
@@ -22,6 +24,9 @@ public:
 
     // add object to scene
     void AddObject(Object* obj);
+
+	// add material to materials list
+	void AddMaterial(Material* mat);
 
     // single raycast, find object
     static bool Raycast(Ray ray, vec3& hitPoint, vec3& hitNormal, Object*& hitObject, float& distance, std::vector<Object*> objects);
@@ -60,18 +65,20 @@ public:
     const vec3 origin = { 0.0, 2.0, 10.0f };
 
     bool threadExit;
-    const int threadCount = 24;
+    const int threadCount = std::thread::hardware_concurrency();
 
     // view matrix
     mat4 view;
     // Go from canonical to view frustum
     mat4 frustum;
 
+	std::vector<Material*> materials;
     std::vector<Object*> objects;
+	//Threading
     std::atomic_int workingTilesIndex;
-    std::atomic_int completedTiles;
-    std::atomic_int temp;
-    std::atomic_bool tempb;
+    std::atomic_int completedTiles = 0;
+    std::atomic_int jobsAvailable;
+    std::atomic_bool blyat;
     std::atomic_bool tempb2;
 };
 
@@ -79,7 +86,10 @@ inline void Raytracer::AddObject(Object* o)
 {
     this->objects.push_back(o);
 }
-
+inline void Raytracer::AddMaterial(Material* m)
+{
+	this->materials.push_back(m);
+}
 inline void Raytracer::SetViewMatrix(mat4 val)
 {
     this->view = val;

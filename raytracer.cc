@@ -1,11 +1,22 @@
 #include "raytracer.h"
 #include <random>
+#include <atomic>
 
 
-void
+static void
 SpinWait()
 {
+	while (true)
+	{
+		if (1 == 1)
+		{
 
+		}
+		else
+		{
+
+		}
+	}
 }
 //------------------------------------------------------------------------------
 /**
@@ -24,48 +35,111 @@ Raytracer::Raytracer(unsigned w, unsigned h, std::vector<Color>& frameBuffer, un
 */
 Raytracer::~Raytracer()
 {
-    for (auto sphere : objects)
+    for (int i = 0; i < objects.size(); i++)
     {
-        delete sphere;
+		delete objects[i];
     }
+	objects.clear();
+	for (int i = 0; i < materials.size(); i++)
+	{
+		delete materials[i];
+	}
+	materials.clear();
+}
+
+
+std::atomic<bool> rendering_finished(false);
+std::atomic<int> pixel_counter(0);
+
+void Raytracer::Raytrace() {
+	static int leet = 1337;
+	std::mt19937 generator(leet++);
+	std::uniform_real_distribution<float> dis(0.0f, 1.0f);
+
+	const int num_threads = std::thread::hardware_concurrency();
+	std::vector<std::thread> threads(num_threads);
+
+	for (int i = 0; i < num_threads; ++i) {
+		threads[i] = std::thread([this, &dis, &generator]() {
+			while (!rendering_finished.load(std::memory_order_acquire)) {
+				int x, y;
+				{
+					int pixel_id = pixel_counter.fetch_add(1);
+					y = pixel_id / width;
+					x = pixel_id % width;
+				}
+
+				if (x >= width || y >= height) {
+					break;
+				}
+
+				Color color;
+				for (int i = 0; i < this->rpp; ++i) {
+					float u = ((float(x + dis(generator)) * (1.0f / this->width)) * 2.0f) - 1.0f;
+					float v = ((float(y + dis(generator)) * (1.0f / this->height)) * 2.0f) - 1.0f;
+
+					vec3 direction = vec3(u, v, -1.0f);
+					direction = transform(direction, this->frustum);
+
+					Ray ray = Ray(get_position(this->view), direction);
+					color += this->TracePath(ray, 0);
+				}
+
+				color.r /= this->rpp;
+				color.g /= this->rpp;
+				color.b /= this->rpp;
+
+				// Use atomic operation to update framebuffer with thread safety
+				//frameBuffer[y * this->width + x].r += std::atomic_fetch_add(&frameBuffer[y * this->width + x].r, color.r);
+				//frameBuffer[y * this->width + x].g += std::atomic_fetch_add(&frameBuffer[y * this->width + x].g, color.g);
+				//frameBuffer[y * this->width + x].b += std::atomic_fetch_add(&frameBuffer[y * this->width + x].b, color.b);
+			}
+			});
+	}
+
+	for (auto& thread : threads) {
+		thread.join();
+	}
+
+	rendering_finished.store(true, std::memory_order_release);
 }
 //------------------------------------------------------------------------------
 /**
 */
-void
-Raytracer::Raytrace()
-{
-    static int leet = 1337;
-    std::mt19937 generator (leet++);
-    std::uniform_real_distribution<float> dis(0.0f, 1.0f);
-
-    for (int x = 0; x < this->width; ++x)
-    {
-        for (int y = 0; y < this->height; ++y)
-        {
-            Color color;
-            for (int i = 0; i < this->rpp; ++i)
-            {
-                float u = ((float(x + dis(generator)) * (1.0f / this->width)) * 2.0f) - 1.0f;
-                float v = ((float(y + dis(generator)) * (1.0f / this->height)) * 2.0f) - 1.0f;
-
-                vec3 direction = vec3(u, v, -1.0f);
-                direction = transform(direction, this->frustum);
-                
-                Ray ray = Ray(get_position(this->view), direction);
-                color += this->TracePath(ray, 0);
-                // delete ray;
-            }
-
-            // divide by number of samples per pixel, to get the average of the distribution
-            color.r /= this->rpp;
-            color.g /= this->rpp;
-            color.b /= this->rpp;
-
-            this->frameBuffer[y * this->width + x] += color;
-        }
-    }
-}
+//void
+//Raytracer::Raytrace()
+//{
+//    static int leet = 1337;
+//    std::mt19937 generator (leet++);
+//    std::uniform_real_distribution<float> dis(0.0f, 1.0f);
+//
+//    for (int x = 0; x < this->width; ++x)
+//    {
+//        for (int y = 0; y < this->height; ++y)
+//        {
+//            Color color;
+//            for (int i = 0; i < this->rpp; ++i)
+//            {
+//                float u = ((float(x + dis(generator)) * (1.0f / this->width)) * 2.0f) - 1.0f;
+//                float v = ((float(y + dis(generator)) * (1.0f / this->height)) * 2.0f) - 1.0f;
+//
+//                vec3 direction = vec3(u, v, -1.0f);
+//                direction = transform(direction, this->frustum);
+//                
+//                Ray ray = Ray(get_position(this->view), direction);
+//                color += this->TracePath(ray, 0);
+//                // delete ray;
+//            }
+//
+//            // divide by number of samples per pixel, to get the average of the distribution
+//            color.r /= this->rpp;
+//            color.g /= this->rpp;
+//            color.b /= this->rpp;
+//
+//            this->frameBuffer[y * this->width + x] += color;
+//        }
+//    }
+//}
 
 //------------------------------------------------------------------------------
 /**

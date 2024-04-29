@@ -2,6 +2,7 @@
 #include "color.h"
 #include "ray.h"
 #include "vec3.h"
+#include <vector>
 #include <string>
 
 //------------------------------------------------------------------------------
@@ -27,6 +28,7 @@ struct Material
 
     // this is only needed for dielectric materials.
     float refractionIndex = 1.44;
+
 };
 
 //------------------------------------------------------------------------------
