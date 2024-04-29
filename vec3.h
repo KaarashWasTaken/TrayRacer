@@ -39,10 +39,10 @@ public:
 
     }
 
-    vec3 operator+(vec3 const& rhs) { return {x + rhs.x, y + rhs.y, z + rhs.z};}
-    vec3 operator-(vec3 const& rhs) { return {x - rhs.x, y - rhs.y, z - rhs.z};}
-    vec3 operator-() { return {-x, -y, -z};}
-    vec3 operator*(float const c) { return {x * c, y * c, z * c};}
+    inline vec3 operator+(vec3 const& rhs) { return {x + rhs.x, y + rhs.y, z + rhs.z};}
+    inline vec3 operator-(vec3 const& rhs) { return {x - rhs.x, y - rhs.y, z - rhs.z};}
+    inline vec3 operator-() { return {-x, -y, -z};}
+    inline vec3 operator*(float const c) { return {x * c, y * c, z * c};}
 
     double x, y, z;
 
@@ -66,7 +66,7 @@ inline vec3 normalize(vec3 v)
         return vec3(0,0,0);
 
     vec3 ret = vec3(v.x / l, v.y / l, v.z / l);
-    return vec3(ret);
+    return ret;
 }
 
 // piecewise multiplication between two vectors

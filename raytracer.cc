@@ -1,6 +1,12 @@
 #include "raytracer.h"
 #include <random>
 
+
+void
+SpinWait()
+{
+
+}
 //------------------------------------------------------------------------------
 /**
 */
@@ -13,7 +19,16 @@ Raytracer::Raytracer(unsigned w, unsigned h, std::vector<Color>& frameBuffer, un
 {
     // empty
 }
-
+//------------------------------------------------------------------------------
+/**
+*/
+Raytracer::~Raytracer()
+{
+    for (auto sphere : objects)
+    {
+        delete sphere;
+    }
+}
 //------------------------------------------------------------------------------
 /**
 */

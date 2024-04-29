@@ -1,5 +1,6 @@
 #pragma once
 #include <vector>
+#include <atomic>
 #include "vec3.h"
 #include "mat4.h"
 #include "color.h"
@@ -14,7 +15,7 @@ class Raytracer
 {
 public:
     Raytracer(unsigned w, unsigned h, std::vector<Color>& frameBuffer, unsigned rpp, unsigned bounces);
-    ~Raytracer() { }
+    ~Raytracer();
 
     // start raytracing!
     void Raytrace();
@@ -58,13 +59,20 @@ public:
     const vec3 vertical = { 0.0, 2.0, 0.0 };
     const vec3 origin = { 0.0, 2.0, 10.0f };
 
+    bool threadExit;
+    const int threadCount = 24;
+
     // view matrix
     mat4 view;
     // Go from canonical to view frustum
     mat4 frustum;
 
-private:
     std::vector<Object*> objects;
+    std::atomic_int workingTilesIndex;
+    std::atomic_int completedTiles;
+    std::atomic_int temp;
+    std::atomic_bool tempb;
+    std::atomic_bool tempb2;
 };
 
 inline void Raytracer::AddObject(Object* o)

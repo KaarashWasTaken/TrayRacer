@@ -82,7 +82,7 @@ public:
     virtual ~Object()
     {
         // clean up name!
-        delete name;
+        delete[] name;
     }
 
     virtual Optional<HitResult> Intersect(Ray ray, float maxDist) { return {}; };

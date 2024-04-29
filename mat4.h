@@ -9,10 +9,11 @@
 */
 struct mat4
 {
-    float m00, m01, m02, m03;
-    float m10, m11, m12, m13;
-    float m20, m21, m22, m23;
-    float m30, m31, m32, m33;
+    float 
+    m00, m01, m02, m03,
+    m10, m11, m12, m13,
+    m20, m21, m22, m23,
+    m30, m31, m32, m33;
 };
 
 //------------------------------------------------------------------------------
@@ -58,22 +59,27 @@ get_position(mat4 m)
 inline vec3
 transform(vec3 v, mat4 m)
 {
-    //swizzle!
-    //this should be easy to vectorize! ;)
-    vec3 x = {v.x, v.x, v.x};
-    vec3 y = {v.y, v.y, v.y};
-    vec3 z = {v.z, v.z, v.z};
-    vec3 r0 = { m.m00, m.m01, m.m02 };
-    vec3 r1 = { m.m10, m.m11, m.m12 };
-    vec3 r2 = { m.m20, m.m21, m.m22 };
-    // multiply
-    vec3 a = mul(x, r0);
-    vec3 b = mul(y, r1);
-    vec3 c = mul(z, r2);
-    // add
-    vec3 res = add(a,b);
-    res = add(res,c);
-    return res;
+    vec3 x = vec3{ m.m00, m.m01, m.m02 } * v.x;
+    vec3 y = vec3{ m.m10, m.m11, m.m12 } * v.y;
+    vec3 z = vec3{ m.m20, m.m21, m.m22 } * v.z;
+    return (x + y + z);
+
+    ////swizzle!
+    ////this should be easy to vectorize! ;)
+    //vec3 x = {v.x, v.x, v.x};
+    //vec3 y = {v.y, v.y, v.y};
+    //vec3 z = {v.z, v.z, v.z};
+    //vec3 r0 = { m.m00, m.m01, m.m02 };
+    //vec3 r1 = { m.m10, m.m11, m.m12 };
+    //vec3 r2 = { m.m20, m.m21, m.m22 };
+    //// multiply
+    //vec3 a = mul(x, r0);
+    //vec3 b = mul(y, r1);
+    //vec3 c = mul(z, r2);
+    //// add
+    //vec3 res = add(a,b);
+    //res = add(res,c);
+    //return res;
 }
 
 //------------------------------------------------------------------------------
