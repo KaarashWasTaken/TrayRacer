@@ -64,8 +64,15 @@ public:
     const vec3 vertical = { 0.0, 2.0, 0.0 };
     const vec3 origin = { 0.0, 2.0, 10.0f };
 
-    bool threadExit;
+	// amount of pixels each thread should work per width
+	int widthPerThread;
+	// the remaining amount of pixels if they are not evenly dividable to the amount of threads
+	int leftOverPixels;
+
+	// amount of threads
     const int threadCount = std::thread::hardware_concurrency();
+	// list of threads
+	std::vector<std::thread> threads;
 
     // view matrix
     mat4 view;
@@ -75,11 +82,6 @@ public:
 	std::vector<Material*> materials;
     std::vector<Object*> objects;
 	//Threading
-    std::atomic_int workingTilesIndex;
-    std::atomic_int completedTiles = 0;
-    std::atomic_int jobsAvailable;
-    std::atomic_bool blyat;
-    std::atomic_bool tempb2;
 };
 
 inline void Raytracer::AddObject(Object* o)

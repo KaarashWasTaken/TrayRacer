@@ -1,22 +1,17 @@
 #include "raytracer.h"
+#include "spinlock.h"
 #include <random>
 #include <atomic>
 
-
-static void
-SpinWait()
+//------------------------------------------------------------------------------
+/**
+*	funtion to check if a atomic bool is true or false
+*/
+static bool testAndSet(atomic<int>& flag)
 {
-	while (true)
-	{
-		if (1 == 1)
-		{
-
-		}
-		else
-		{
-
-		}
-	}
+	int result = flag.fetch_add(0, std::memory_order_acquire);
+	//check if the old value was 1 which means the bool is true
+	return result == 1;
 }
 //------------------------------------------------------------------------------
 /**
@@ -26,9 +21,14 @@ Raytracer::Raytracer(unsigned w, unsigned h, std::vector<Color>& frameBuffer, un
     rpp(rpp),
     bounces(bounces),
     width(w),
-    height(h)
+    height(h),
+	threads(threadCount)
 {
-    // empty
+	widthPerThread = width / threadCount;
+	leftOverPixels = width % threadCount;
+	cout << "Width per thread" << widthPerThread << endl;
+	cout << "Left overs: " << leftOverPixels << endl;
+	cout << threadCount << endl;
 }
 //------------------------------------------------------------------------------
 /**
@@ -47,99 +47,75 @@ Raytracer::~Raytracer()
 	materials.clear();
 }
 
-
-std::atomic<bool> rendering_finished(false);
-std::atomic<int> pixel_counter(0);
-
-void Raytracer::Raytrace() {
-	static int leet = 1337;
-	std::mt19937 generator(leet++);
-	std::uniform_real_distribution<float> dis(0.0f, 1.0f);
-
-	const int num_threads = std::thread::hardware_concurrency();
-	std::vector<std::thread> threads(num_threads);
-
-	for (int i = 0; i < num_threads; ++i) {
-		threads[i] = std::thread([this, &dis, &generator]() {
-			while (!rendering_finished.load(std::memory_order_acquire)) {
-				int x, y;
-				{
-					int pixel_id = pixel_counter.fetch_add(1);
-					y = pixel_id / width;
-					x = pixel_id % width;
-				}
-
-				if (x >= width || y >= height) {
-					break;
-				}
-
-				Color color;
-				for (int i = 0; i < this->rpp; ++i) {
-					float u = ((float(x + dis(generator)) * (1.0f / this->width)) * 2.0f) - 1.0f;
-					float v = ((float(y + dis(generator)) * (1.0f / this->height)) * 2.0f) - 1.0f;
-
-					vec3 direction = vec3(u, v, -1.0f);
-					direction = transform(direction, this->frustum);
-
-					Ray ray = Ray(get_position(this->view), direction);
-					color += this->TracePath(ray, 0);
-				}
-
-				color.r /= this->rpp;
-				color.g /= this->rpp;
-				color.b /= this->rpp;
-
-				// Use atomic operation to update framebuffer with thread safety
-				//frameBuffer[y * this->width + x].r += std::atomic_fetch_add(&frameBuffer[y * this->width + x].r, color.r);
-				//frameBuffer[y * this->width + x].g += std::atomic_fetch_add(&frameBuffer[y * this->width + x].g, color.g);
-				//frameBuffer[y * this->width + x].b += std::atomic_fetch_add(&frameBuffer[y * this->width + x].b, color.b);
-			}
-			});
-	}
-
-	for (auto& thread : threads) {
-		thread.join();
-	}
-
-	rendering_finished.store(true, std::memory_order_release);
-}
 //------------------------------------------------------------------------------
 /**
 */
-//void
-//Raytracer::Raytrace()
-//{
-//    static int leet = 1337;
-//    std::mt19937 generator (leet++);
-//    std::uniform_real_distribution<float> dis(0.0f, 1.0f);
-//
-//    for (int x = 0; x < this->width; ++x)
-//    {
-//        for (int y = 0; y < this->height; ++y)
-//        {
-//            Color color;
-//            for (int i = 0; i < this->rpp; ++i)
-//            {
-//                float u = ((float(x + dis(generator)) * (1.0f / this->width)) * 2.0f) - 1.0f;
-//                float v = ((float(y + dis(generator)) * (1.0f / this->height)) * 2.0f) - 1.0f;
-//
-//                vec3 direction = vec3(u, v, -1.0f);
-//                direction = transform(direction, this->frustum);
-//                
-//                Ray ray = Ray(get_position(this->view), direction);
-//                color += this->TracePath(ray, 0);
-//                // delete ray;
-//            }
-//
-//            // divide by number of samples per pixel, to get the average of the distribution
-//            color.r /= this->rpp;
-//            color.g /= this->rpp;
-//            color.b /= this->rpp;
-//
-//            this->frameBuffer[y * this->width + x] += color;
-//        }
-//    }
-//}
+void
+Raytracer::Raytrace()
+{
+    static int leet = 1337;
+    std::mt19937 generator (leet++);
+    std::uniform_real_distribution<float> dis(0.0f, 1.0f);
+	atomic<int> renderCompleted(0);
+	Spinlock lock;
+
+	for (int i = 0; i < threadCount; ++i)
+	{
+		cout << i << endl;
+		int startX, endX, startY = 0, endY = height;
+		if (i < threadCount -1 || leftOverPixels == 0)
+		{
+			startX = i * (widthPerThread + 1);
+			endX = startX + widthPerThread;
+		}
+		else if (leftOverPixels > 0 && i == threadCount - 1)
+		{
+			startX = i * widthPerThread;
+			endX = startX * widthPerThread + leftOverPixels;
+		}
+		threads[i] = std::thread([this, &dis, &generator, &renderCompleted, startX, startY, endX, endY, &lock, &i]()
+		{
+			while (!testAndSet(renderCompleted))
+			{
+				for (int y = startY; y <= endY; ++y)
+				{
+					for (int x = startX; x <= endX; ++x)
+					{
+						Color color;
+						for (int i = 0; i < this->rpp; ++i)
+						{
+							float u = ((float(x + dis(generator)) * (1.0f / this->width)) * 2.0f) - 1.0f;
+							float v = ((float(y + dis(generator)) * (1.0f / this->height)) * 2.0f) - 1.0f;
+
+							vec3 direction = vec3(u, v, -1.0f);
+							direction = transform(direction, this->frustum);
+
+							Ray ray = Ray(get_position(this->view), direction);
+							color += this->TracePath(ray, 0);
+							// delete ray;
+						}
+						// divide by number of samples per pixel, to get the average of the distribution
+						color.r /= this->rpp;
+						color.g /= this->rpp;
+						color.b /= this->rpp;
+						{
+							cout << "Here: " << i << endl;
+							lock.lock();
+							frameBuffer[y * this->width + x] += color;
+							lock.unlock();
+						}
+					}
+				}
+			}
+		});
+	}
+	renderCompleted.store(1, std::memory_order_release);
+	for (auto& thread : threads)
+	{
+		thread.join();
+	}
+  
+}
 
 //------------------------------------------------------------------------------
 /**
